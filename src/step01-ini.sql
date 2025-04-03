@@ -35,18 +35,6 @@ INSERT INTO spatial_ref_sys (srid, auth_name, auth_srid, proj4text, srtext) VALU
 -- -- -- -- -- -- -- -- -- -- --
 --- Public Helper functions:
 
-CREATE or replace FUNCTION iIF(
-    condition boolean,       -- IF condition
-    true_result anyelement,  -- THEN
-    false_result anyelement  -- ELSE
-    -- See https://stackoverflow.com/a/53750984/287948
-) RETURNS anyelement AS $f$
-  SELECT CASE WHEN condition THEN true_result ELSE false_result END
-$f$  LANGUAGE SQL IMMUTABLE;
-COMMENT ON FUNCTION iif
-  IS 'Immediate IF. Sintax sugar for the most frequent CASE-WHEN. Avoid with text, need explicit cast.'
-;
-
 CREATE or replace FUNCTION ROUND(float,int) RETURNS NUMERIC AS $wrap$
    SELECT ROUND($1::numeric,$2)
 $wrap$ language SQL IMMUTABLE;
@@ -84,7 +72,8 @@ CREATE SCHEMA dpvd24;
 
 CREATE TABLE dpvd24.t01_ibge_cnefe2022_point (
  COD_UNICO_ENDERECO  bigint NOT NULL PRIMARY KEY,
- geom geometry(Point, 4326)
+ COD_MUNICIPIO int NOT NULL,
+ geom geometry(Point, 4326) NOT NULL
 );
 
 CREATE EXTENSION file_fdw;
@@ -124,19 +113,20 @@ CREATE FOREIGN TABLE dpvd24.f01_ibge_cnefe2022_get(
  COD_INDICADOR_CONST_ENDERECO text,
  COD_INDICADOR_FINALIDADE_CONST text,
  COD_TIPO_ESPECI text
-) SERVER import OPTIONS ( filename '/tmp/pg_io/file.csv', format 'csv'); -- header e ";"
+) SERVER import OPTIONS ( filename '/tmp/test.csv', format 'csv', header 'true', delimiter ';' )
+;
 
-
-INSERT INTO dpvd24.t01_ibge_cnefe2022_point
-  SELECT COD_UNICO_ENDERECO,
+CREATE PROCEDURE dpvd24.ins_on_t01_ibge_cnefe2022_point(p_filename text)
+LANGUAGE SQL AS $p$
+ SELECT dynamic_execute(
+   format('ALTER FOREIGN TABLE dpvd24.f01_ibge_cnefe2022_get OPTIONS (SET filename %L)', $1 )
+ );
+ INSERT INTO dpvd24.t01_ibge_cnefe2022_point
+  SELECT COD_UNICO_ENDERECO::bigint,
+         MAX( COD_MUNICIPIO::int ), -- or FIRST as https://dba.stackexchange.com/q/63661/90651
          MAX( ST_Point(LONGITUDE::float,LATITUDE::float,4326) )
-  FROM ibge_cnefe2022_onlyend
+  FROM dpvd24.f01_ibge_cnefe2022_get
   GROUP BY 1
-  ORDER BY 1
-ON CONFLICT DO NOTHING
-;
-INSERT INTO tablename (x, y, z)
-  SELECT f1(fieldname1), f2(fieldname2), f3(fieldname3) -- the transforms 
-  FROM tmp_tablename_fdw
-  -- WHERE condictions
-;
+ ON CONFLICT DO NOTHING
+ ;
+$p$;
