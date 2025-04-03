@@ -73,8 +73,16 @@ CREATE SCHEMA dpvd24;
 CREATE TABLE dpvd24.t01_ibge_cnefe2022_point (
  COD_UNICO_ENDERECO  bigint NOT NULL PRIMARY KEY,
  COD_MUNICIPIO int NOT NULL,
+ COD_UF_part smallint NOT NULL, -- obrigatório no SELECT WHERE 
  geom geometry(Point, 4326) NOT NULL
-);
+) PARTITION BY LIST (COD_UF_part)
+;
+SELECT dynamic_execute( format(
+    'CREATE TABLE IF NOT EXISTS dpvd24.partition_t01_p%s PARTITION OF dpvd24.ins_on_t01_ibge_cnefe2022_point FOR VALUES IN (%1$s); ', i
+  ) )
+FROM unnest('{1,2,3,35,4,5}'::text[]) t(i);
+
+-- FUNCTION for queries WHERE COD_UF_part=dpvd24.get_partition_t01($UF): CASE WHEN $1=35 THEN 35 ELSE $1/10::smallint END 
 
 CREATE EXTENSION file_fdw;
 CREATE SERVER import FOREIGN DATA WRAPPER file_fdw;
@@ -124,9 +132,30 @@ LANGUAGE SQL AS $p$
  INSERT INTO dpvd24.t01_ibge_cnefe2022_point
   SELECT COD_UNICO_ENDERECO::bigint,
          MAX( COD_MUNICIPIO::int ), -- or FIRST as https://dba.stackexchange.com/q/63661/90651
+         MAX( CASE WHEN substring(COD_MUNICIPIO,1,2)='35' THEN '35' ELSE substring(COD_MUNICIPIO,1,1) END::smallint ),
          MAX( ST_Point(LONGITUDE::float,LATITUDE::float,4326) )
   FROM dpvd24.f01_ibge_cnefe2022_get
   GROUP BY 1
  ON CONFLICT DO NOTHING
  ;
 $p$;
+
+-------
+
+CREATE VIEW dpvd24.table_disk_usage AS
+SELECT
+  relname,
+  pg_size_pretty(table_size) AS size,
+  table_size as size_bytes
+FROM (
+       SELECT
+         pg_catalog.pg_namespace.nspname           AS schema_name,
+         relname,
+         pg_relation_size(pg_catalog.pg_class.oid) AS table_size
+       FROM pg_catalog.pg_class
+         JOIN pg_catalog.pg_namespace ON relnamespace = pg_catalog.pg_namespace.oid
+     ) t
+WHERE schema_name='dpvd24'
+ORDER BY table_size DESC;
+-- SELECT * FROM dpvd24.table_disk_usage;
+
