@@ -5,6 +5,8 @@
 -- -- -- -- -- -- -- -- -- -- --
 --- INI POSTGIS:
 
+CREATE EXTENSION btree_gist; -- to avoid error with GIST composite indexes
+
 CREATE extension IF NOT EXISTS postgis;
 
 INSERT INTO spatial_ref_sys (srid, auth_name, auth_srid, proj4text, srtext) VALUES
@@ -68,7 +70,10 @@ COMMENT ON FUNCTION dynamic_execute(text)
 --- INI Project:
 
 DROP SCHEMA IF EXISTS dpvd24 CASCADE;
+DROP SCHEMA IF EXISTS dpvd24_partitions CASCADE;
+
 CREATE SCHEMA dpvd24;
+CREATE SCHEMA dpvd24_partitions;
 
 CREATE TABLE dpvd24.t01_ibge_cnefe2022_point (
  COD_UNICO_ENDERECO  bigint NOT NULL, -- PRIMARY KEY,
@@ -82,19 +87,22 @@ CREATE INDEX t01_ibge_cnefe2022_point_idx1
   USING GIST (COD_UF_part,geom)
 ;
 
-CREATE FUNCTION dpvd24.cnefe_part(cod_municipio int) RETURNS smallint AS $f$
-   SELECT CASE WHEN ufcod IN (31,33,35,43) THEN ufcod ELSE ufcod/10::int END::smallint
-   FROM (select  CASE WHEN $1>100 THEN $1/100000::int ELSE $1 END) t(ufcod)
+CREATE FUNCTION dpvd24.t01_partitioner(
+ cod_IBGE int -- Código de UF ou de Município
+) RETURNS smallint AS $f$
+   SELECT (CASE WHEN ufcod=35 THEN 1 ELSE ufcod % 3 END)::smallint  -- 3 balanced partitions 
+   FROM (select CASE WHEN $1>100 THEN $1/100000 ELSE $1 END) t(ufcod)
 $f$ language SQL IMMUTABLE PARALLEL SAFE;
 
 SELECT dynamic_execute( format(
-    'CREATE TABLE IF NOT EXISTS dpvd24.partition_t01_p%s PARTITION OF dpvd24.t01_ibge_cnefe2022_point FOR VALUES IN (%1$s); ', i
-  ) )  -- dpvd24.cnefe_part(i)::text 
-FROM unnest('{1,2,3,31,33,35,4,5}'::text[]) t(i);
+    'CREATE TABLE IF NOT EXISTS dpvd24_partitions.t01_p%s PARTITION OF dpvd24.t01_ibge_cnefe2022_point FOR VALUES IN (%1$s); ', p
+  ) )
+FROM (
+  select DISTINCT dpvd24.t01_partitioner(uf) p from unnest('{11,12,13,14,15,16,17,21,22,23,24,25,26,27,28,29,31,32,33,35,41,42,43,50,51,52,53}'::int[]) t0(uf)
+) t1
+;
 
-
--- FUNCTION for queries WHERE COD_UF_part=dpvd24.get_partition_t01($UF): CASE WHEN $1=35 THEN 35 ELSE $1/10::smallint END 
-
+---
 CREATE EXTENSION IF NOT EXISTS file_fdw;
 CREATE SERVER IF NOT EXISTS import FOREIGN DATA WRAPPER file_fdw;
 CREATE FOREIGN TABLE dpvd24.f01_ibge_cnefe2022_get(
@@ -143,7 +151,7 @@ LANGUAGE SQL AS $p$
  INSERT INTO dpvd24.t01_ibge_cnefe2022_point
   SELECT COD_UNICO_ENDERECO::bigint,
          MAX( COD_MUNICIPIO::int ), -- or FIRST as https://dba.stackexchange.com/q/63661/90651
-         MAX( dpvd24.cnefe_part(COD_MUNICIPIO::int) ),
+         MAX( dpvd24.t01_partitioner(COD_MUNICIPIO::int) ),
          MAX( ST_Point(LONGITUDE::float,LATITUDE::float,4326) )
   FROM (select *, substring(COD_MUNICIPIO,1,2) as ufcod from dpvd24.f01_ibge_cnefe2022_get) t
   GROUP BY 1
@@ -155,7 +163,7 @@ $p$;
 
 CREATE VIEW dpvd24.table_disk_usage AS
 SELECT
-  relname,
+  schema_name, relname,
   pg_size_pretty(table_size) AS size,
   table_size as size_bytes
 FROM (
@@ -166,7 +174,6 @@ FROM (
        FROM pg_catalog.pg_class
          JOIN pg_catalog.pg_namespace ON relnamespace = pg_catalog.pg_namespace.oid
      ) t
-WHERE schema_name='dpvd24'
-ORDER BY table_size DESC;
+WHERE schema_name IN ('dpvd24','dpvd24_partitions')
+ORDER BY schema_name, table_size DESC;
 -- SELECT * FROM dpvd24.table_disk_usage;
-

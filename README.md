@@ -34,5 +34,5 @@ Depois disso basta seguir o passo-a-passo, supondo ambiente Linux:
 
 1. `cd DATAPREV-desafios2024/src`
 2. `psql postgres://postgres@localhost/dbtest < step01-ini.sql`  (rápido)
-3. `psql postgres://postgres@localhost/dbtest < step02-ingest.sql &` (demorado)
+3. `psql postgres://postgres@localhost/dbtest < step02-ingest.sql &>> log_err.txt &` (demorado)
 
