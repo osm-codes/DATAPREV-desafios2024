@@ -37,7 +37,7 @@ INSERT INTO spatial_ref_sys (srid, auth_name, auth_srid, proj4text, srtext) VALU
 
 CREATE or replace FUNCTION ROUND(float,int) RETURNS NUMERIC AS $wrap$
    SELECT ROUND($1::numeric,$2)
-$wrap$ language SQL IMMUTABLE;
+$wrap$ language SQL IMMUTABLE PARALLEL SAFE;
 COMMENT ON FUNCTION ROUND(float,int)
   IS 'Cast for ROUND(float,x). Useful for SUM, AVG, etc. See also https://stackoverflow.com/a/20934099/287948.'
 ;
@@ -71,21 +71,32 @@ DROP SCHEMA IF EXISTS dpvd24 CASCADE;
 CREATE SCHEMA dpvd24;
 
 CREATE TABLE dpvd24.t01_ibge_cnefe2022_point (
- COD_UNICO_ENDERECO  bigint NOT NULL PRIMARY KEY,
+ COD_UNICO_ENDERECO  bigint NOT NULL, -- PRIMARY KEY,
  COD_MUNICIPIO int NOT NULL,
  COD_UF_part smallint NOT NULL, -- obrigatório no SELECT WHERE 
  geom geometry(Point, 4326) NOT NULL
 ) PARTITION BY LIST (COD_UF_part)
 ;
+CREATE INDEX t01_ibge_cnefe2022_point_idx1
+  ON dpvd24.t01_ibge_cnefe2022_point
+  USING GIST (COD_UF_part,geom)
+;
+
+CREATE FUNCTION dpvd24.cnefe_part(cod_municipio int) RETURNS smallint AS $f$
+   SELECT CASE WHEN ufcod IN (31,33,35,43) THEN ufcod ELSE ufcod/10::int END::smallint
+   FROM (select  CASE WHEN $1>100 THEN $1/100000::int ELSE $1 END) t(ufcod)
+$f$ language SQL IMMUTABLE PARALLEL SAFE;
+
 SELECT dynamic_execute( format(
-    'CREATE TABLE IF NOT EXISTS dpvd24.partition_t01_p%s PARTITION OF dpvd24.ins_on_t01_ibge_cnefe2022_point FOR VALUES IN (%1$s); ', i
-  ) )
-FROM unnest('{1,2,3,35,4,5}'::text[]) t(i);
+    'CREATE TABLE IF NOT EXISTS dpvd24.partition_t01_p%s PARTITION OF dpvd24.t01_ibge_cnefe2022_point FOR VALUES IN (%1$s); ', i
+  ) )  -- dpvd24.cnefe_part(i)::text 
+FROM unnest('{1,2,3,31,33,35,4,5}'::text[]) t(i);
+
 
 -- FUNCTION for queries WHERE COD_UF_part=dpvd24.get_partition_t01($UF): CASE WHEN $1=35 THEN 35 ELSE $1/10::smallint END 
 
-CREATE EXTENSION file_fdw;
-CREATE SERVER import FOREIGN DATA WRAPPER file_fdw;
+CREATE EXTENSION IF NOT EXISTS file_fdw;
+CREATE SERVER IF NOT EXISTS import FOREIGN DATA WRAPPER file_fdw;
 CREATE FOREIGN TABLE dpvd24.f01_ibge_cnefe2022_get(
  COD_UNICO_ENDERECO text,
  COD_UF text,
@@ -132,9 +143,9 @@ LANGUAGE SQL AS $p$
  INSERT INTO dpvd24.t01_ibge_cnefe2022_point
   SELECT COD_UNICO_ENDERECO::bigint,
          MAX( COD_MUNICIPIO::int ), -- or FIRST as https://dba.stackexchange.com/q/63661/90651
-         MAX( CASE WHEN substring(COD_MUNICIPIO,1,2)='35' THEN '35' ELSE substring(COD_MUNICIPIO,1,1) END::smallint ),
+         MAX( dpvd24.cnefe_part(COD_MUNICIPIO::int) ),
          MAX( ST_Point(LONGITUDE::float,LATITUDE::float,4326) )
-  FROM dpvd24.f01_ibge_cnefe2022_get
+  FROM (select *, substring(COD_MUNICIPIO,1,2) as ufcod from dpvd24.f01_ibge_cnefe2022_get) t
   GROUP BY 1
  ON CONFLICT DO NOTHING
  ;
