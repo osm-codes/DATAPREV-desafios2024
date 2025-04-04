@@ -57,9 +57,9 @@ COMMENT ON FUNCTION dynamic_query(text)
 CREATE or replace FUNCTION dynamic_execute(text) RETURNS boolean AS
 $f$
  BEGIN
-    RAISE NOTICE '-- EXECUTing: %',substring(trim($1),1,52)||'...'; -- max 64 columns
-    EXECUTE $1 ;  -- INTO ret; revisar para comando devolver ret booleano de sucesso
-    RETURN true;
+    RAISE NOTICE '-- EXE %',substring(trim($1),1,250)||'...'; -- max 253 columns
+    EXECUTE $1 ;
+    RETURN true;  -- ideal return execute
  END
 $f$ language  PLpgSQL;
 COMMENT ON FUNCTION dynamic_execute(text)
@@ -74,6 +74,9 @@ DROP SCHEMA IF EXISTS dpvd24_partitions CASCADE;
 
 CREATE SCHEMA dpvd24;
 CREATE SCHEMA dpvd24_partitions;
+
+-- -- -- --
+-- CNEFE:
 
 CREATE TABLE dpvd24.t01_ibge_cnefe2022_point (
  COD_UNICO_ENDERECO  bigint NOT NULL, -- PRIMARY KEY,
@@ -177,3 +180,10 @@ FROM (
 WHERE schema_name IN ('dpvd24','dpvd24_partitions')
 ORDER BY schema_name, table_size DESC;
 -- SELECT * FROM dpvd24.table_disk_usage;
+
+-- -- -- -- -- --
+-- MANCHA INUND:
+
+
+-- virá pronto o shapefile...
+
