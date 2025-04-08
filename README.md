@@ -54,7 +54,7 @@ São "desafios computacionais" de SIG, correspondendo a operações típicas de 
 
 O [*benchmark* de *software*](https://en.wikipedia.org/wiki/Benchmark_(computing)) requer ambiente controlado, sem outras aplicações rodando simultaneamente. Convenções:
 * computador com *hardware* popular (ex. Notebook com disco SSD e CPU Intel Core i7),
-* sistema operacional Linux (Ubunto LTS 20),
+* sistema operacional Linux (Ubuntu LTS 20),
 * [PostgreSQL v16](https://en.wikipedia.org/wiki/PostgreSQL#Release_history), [`psql` v17](https://github.com/postgres/postgres/tree/master/src/bin/psql), [PostGIS v3.5](https://en.wikipedia.org/wiki/PostGIS#History).
 
 Os desafios são executados por uma testemunha (usuário Github) em seu ambiente, e resultados registrados no [arquivo `benckmark_info.csv`](data/benckmark_info.csv) pela testemunha. A instalação e execussão dos *benchmarks* é realizada em `psql`. A mesma temporização pode ser obtida de diversas formas: pelo comando psql `\timing` ;  incluindo cláusula [`EXPLAIN ANALYSE`](https://www.postgresql.org/docs/current/sql-explain.html) (*Execution Time*); ou usando `clock_timestamp`. Optamos pela última para poder inserir valores na tabela de controle  `dpvd24.performance_hist`, que alimenta no formato correto o `benckmark_info.csv`.
