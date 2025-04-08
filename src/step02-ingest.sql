@@ -21,7 +21,7 @@ $do$;
 --- INGEST MANCHA INUNDAÇÃO RS:
 
 -- ogr2ogr -f "ESRI Shapefile" /tmp/mancha_inund/ADA_SPGG_03092024.kml
--- shp2pgsql -I -s 4674 /tmp/mancha_inund/ada_03092024.shp dpvd24.mancha_inun | psql postgres://postgres@localhost/dbtest1
+-- shp2pgsql -I -s 4674 /tmp/mancha_inund/ada_03092024.shp dpvd24.mancha_inund | psql postgres://postgres@localhost/dbtest1
 
 CREATE TABLE dpvd24.t03dump_mancha_inund AS
 SELECT t0.gid, t1.i, t0.tipo_ada, ST_MakeValid( ST_SimplifyVW(t1.g,2) ) as geom
