@@ -12,7 +12,7 @@ As diversas operações do Desafio2024 fazem uso de três grandes conjuntos de d
 
 O Censo de 2022, segundo [blog do próprio IBGE](https://agenciadenoticias.ibge.gov.br/agencia-noticias/2012-agencia-de-noticias/noticias/40393-noticia-cnefe), "tem 106,8 milhões de endereços". No presente projeto estamos interessados no que o IBGE denominou *endereços únicos*, que são endereços horizontais de porta de casa, **sem complemento**.
 
-Os *datasets* "por UF" são arquivos CSV zipados, oferecidos em  https://www.ibge.gov.br/estatisticas/downloads-estatisticas.html  no caminho "Censo_Demografico_2022/Arquivos_CNEFE". Os pontos LatLong foram expressos em WGS84 (SRID 4326). A AddressForAll reuniu todos num só zip:<br>&nbsp; `IBGE_Enderecos.zip`	com 3922081398 bytes (\~3.65 GiB) e <br>&nbsp; SHA256=`daff5251f48d295d27621d0bfbd6c9b3a78a8827e31fd0bd7acb4bc7ad079d27`.<br>O *download* é pelo próprio *hash* ou seu prefixo:  https://dl.digital-guard.org/daff5251f  (cuidado só clicar se for mesmo baixar).
+Os *datasets* "por UF" são arquivos CSV zipados, oferecidos em  https://www.ibge.gov.br/estatisticas/downloads-estatisticas.html  no caminho "Censo_Demografico_2022/Arquivos_CNEFE". Os pontos LatLong foram expressos em WGS84 (SRID 4326). A AddressForAll reuniu todos num só zip:<br>&nbsp; `IBGE_Enderecos.zip`	com 3922081398 bytes (\~3.65 GiB) e <br>&nbsp; SHA256=`daff5251f48d295d27621d0bfbd6c9b3a78a8827e31fd0bd7acb4bc7ad079d27`.<br>O *download* é pelo próprio *hash* ou seu prefixo:  https://dl.digital-guard.org/daff5251f  (cuidado só clicar se for mesmo baixar)(Passo 3).
 
 Esta [página IBGE dá acesso ao Excel de descrição, "Dicionário"](https://www.ibge.gov.br/estatisticas/sociais/populacao/38734-cadastro-nacional-de-enderecos-para-fins-estatisticos.html?edicao=40122&t=resultados), e conforma a coluna `COD_UNICO_ENDERECO` como chave primária. Dá a entender que são endereços de imóveis, ou seja,  duplicando pontos de "endereço horizontal" no caso de edifícios e demais tipos de imóveis distinguíveis apenas pelo complemento do endereço.
 
@@ -75,7 +75,7 @@ Depois disso basta seguir o passo-a-passo, supondo ambiente Linux:
 
 1. `cd DATAPREV-desafios2024/src`
 2. `psql postgres://postgres@localhost/dbtest < step01-ini.sql`  (rápido)
-3. Preparar dados brutos CSV do CNEFE.
+3. Preparar dados brutos CSV do CNEFE, como descrito no tópico "CNEFE" acima.
 4. Preparar e fazer carga do *shapefile* da mancha de inundação, em `dpvd24.mancha_inund`.
 5. `psql postgres://postgres@localhost/dbtest < step02-ingest.sql &>> log_step02.txt &` (demorado)
 6. (opcional) se log_step02 sem erros, apagar dados do CNEFE.
