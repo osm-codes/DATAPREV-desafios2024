@@ -81,7 +81,7 @@ CREATE SCHEMA dpvd24_partitions;
 CREATE TABLE dpvd24.t01_ibge_cnefe2022_point (
  COD_UNICO_ENDERECO  bigint NOT NULL, -- PRIMARY KEY,
  COD_MUNICIPIO int NOT NULL,
- COD_UF_part smallint NOT NULL, -- obrigatório no SELECT WHERE 
+ COD_UF_part smallint NOT NULL, -- obrigatório no SELECT WHERE
  geom geometry(Point, 4326) NOT NULL
 ) PARTITION BY LIST (COD_UF_part)
 ;
@@ -90,10 +90,10 @@ CREATE INDEX t01_ibge_cnefe2022_point_idx1
   USING GIST (COD_UF_part,geom)
 ;
 
-CREATE FUNCTION dpvd24.t01_partitioner(
+CREATE FUNCTION dpvd24.partitioner_of_t01(
  cod_IBGE int -- Código de UF ou de Município
 ) RETURNS smallint AS $f$
-   SELECT (CASE WHEN ufcod=35 THEN 1 ELSE ufcod % 3 END)::smallint  -- 3 balanced partitions 
+   SELECT (CASE WHEN ufcod=35 THEN 1 ELSE ufcod % 3 END)::smallint  -- 3 balanced partitions
    FROM (select CASE WHEN $1>100 THEN $1/100000 ELSE $1 END) t(ufcod)
 $f$ language SQL IMMUTABLE PARALLEL SAFE;
 
@@ -101,7 +101,7 @@ SELECT dynamic_execute( format(
     'CREATE TABLE IF NOT EXISTS dpvd24_partitions.t01_p%s PARTITION OF dpvd24.t01_ibge_cnefe2022_point FOR VALUES IN (%1$s); ', p
   ) )
 FROM (
-  select DISTINCT dpvd24.t01_partitioner(uf) p from unnest('{11,12,13,14,15,16,17,21,22,23,24,25,26,27,28,29,31,32,33,35,41,42,43,50,51,52,53}'::int[]) t0(uf)
+  select DISTINCT dpvd24.partitioner_of_t01(uf) p from unnest('{11,12,13,14,15,16,17,21,22,23,24,25,26,27,28,29,31,32,33,35,41,42,43,50,51,52,53}'::int[]) t0(uf)
 ) t1
 ;
 
@@ -154,8 +154,8 @@ LANGUAGE SQL AS $p$
  INSERT INTO dpvd24.t01_ibge_cnefe2022_point
   SELECT COD_UNICO_ENDERECO::bigint,
          MAX( COD_MUNICIPIO::int ), -- or FIRST as https://dba.stackexchange.com/q/63661/90651
-         MAX( dpvd24.t01_partitioner(COD_MUNICIPIO::int) ),
-         MAX( ST_Point(LONGITUDE::float,LATITUDE::float,4326) )
+         MAX( dpvd24.partitioner_of_t01(COD_MUNICIPIO::int) ),
+         MAX( ST_Point(LONGITUDE::float, LATITUDE::float, 4326) )
   FROM (select *, substring(COD_MUNICIPIO,1,2) as ufcod from dpvd24.f01_ibge_cnefe2022_get) t
   GROUP BY 1
  ON CONFLICT DO NOTHING
@@ -180,10 +180,3 @@ FROM (
 WHERE schema_name IN ('dpvd24','dpvd24_partitions')
 ORDER BY schema_name, table_size DESC;
 -- SELECT * FROM dpvd24.table_disk_usage;
-
--- -- -- -- -- --
--- MANCHA INUND:
-
-
--- virá pronto o shapefile...
-
