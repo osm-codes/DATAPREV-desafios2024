@@ -180,3 +180,15 @@ FROM (
 WHERE schema_name IN ('dpvd24','dpvd24_partitions')
 ORDER BY schema_name, table_size DESC;
 -- SELECT * FROM dpvd24.table_disk_usage;
+
+
+CREATE TABLE dpvd24.performance_hist (
+ desafio_id int NOT NULL,
+ framework_rotulo text NOT NULL,
+ user text NOT NULL,
+ n_rows int,
+ total_s int,
+ rows_per_sec int,
+ dt_run date DEFAULT now(),
+ UNIQUE(desafio_id,framework_rotulo,user,dt_run)
+);
