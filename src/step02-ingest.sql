@@ -21,7 +21,7 @@ $do$;
 --- INGEST MANCHA INUNDAÇÃO RS:
 
 -- ogr2ogr -f "ESRI Shapefile" /tmp/mancha_inund/ADA_SPGG_03092024.kml
--- shp2pgsql -I -s 4674 /tmp/mancha_inund/ada_03092024.shp dataprev.test_ingest | psql postgres://postgres@localhost/dbtest
+-- shp2pgsql -I -s 4674 /tmp/mancha_inund/ada_03092024.shp dpvd24.mancha_inun | psql postgres://postgres@localhost/dbtest1
 
 CREATE TABLE dpvd24.t03dump_mancha_inund AS
 SELECT t0.gid, t1.i, t0.tipo_ada, ST_MakeValid( ST_SimplifyVW(t1.g,2) ) as geom
@@ -37,7 +37,7 @@ SELECT t0.gid, t1.i, t0.tipo_ada, ST_MakeValid( ST_SimplifyVW(t1.g,2) ) as geom
         )  -- /makes
         FROM ST_Dump(geom) AS poly where st_area(geom,true) >= 4 -- remove menor que 4m2
     ) AS geoms
-  FROM dpvd24.t02_mancha_inund
+  FROM dpvd24.mancha_inund
  ) t0,
  UNNEST(t0.geoms) WITH ORDINALITY t1(g,i)
 ; -- 27986 rows
