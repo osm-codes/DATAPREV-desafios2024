@@ -101,11 +101,11 @@ Depois disso basta seguir o passo-a-passo, supondo ambiente Linux:
 
 1. `cd DATAPREV-desafios2024/src`
 2. `psql postgres://postgres@localhost/dbtest < step01-ini.sql`  (rápido)
-3. Preparar dados brutos CSV do CNEFE, como descrito no tópico "CNEFE" acima.
-4. Preparar e fazer carga do *shapefile* da mancha de inundação, em `dpvd24.mancha_inund`.
-5. `psql postgres://postgres@localhost/dbtest < step02-ingest.sql &>> log_step02.txt &` (demorado)
-6. (opcional) se log_step02 sem erros, apagar dados do CNEFE.
-7. Rodar o benchmark desejado e gravar resultado no CSV, usando `COPY dpvd24.performance_hist TO '/tmp/dpvd24_performance_hist.csv' CSV HEAD` para obter dados corretos.
+3. Preparar dados brutos CSV do CNEFE, como descrito na [seção acima](#CNEFE).
+5. Preparar e fazer carga do *shapefile* da mancha de inundação, em `dpvd24.mancha_inund`.
+6. `psql postgres://postgres@localhost/dbtest < step02-ingest.sql &>> log_step02.txt &` (demorado)
+7. (opcional) se log_step02 sem erros, apagar dados do CNEFE.
+8. Rodar o benchmark desejado e gravar resultado no CSV, usando `COPY dpvd24.performance_hist TO '/tmp/dpvd24_performance_hist.csv' CSV HEAD` para obter dados corretos.
 
 Rodando os **desafios com SIG convencional**:
 
