@@ -11,11 +11,13 @@ DECLARE
  ibge_files text DEFAULT '/tmp/IBGE/'; -- please CHANGE HERE to your path!!
 BEGIN
    FOREACH i IN ARRAY '{11_RO,12_AC,13_AM,14_RR,15_PA,16_AP,17_TO,21_MA,22_PI,23_CE,24_RN,25_PB,26_PE,27_AL,28_SE,29_BA,31_MG,32_ES,33_RJ,35_SP,41_PR,42_SC,43_RS,50_MS,51_MT,52_GO,53_DF}'::text[] LOOP
-      CALL dpvd24.ins_on_t01_ibge_cnefe2022_point(ibge_files|| i ||'.csv');
+      CALL dpvd24.ins_on_t01filt(ibge_files|| i ||'.csv');
       COMMIT;
    END LOOP;
 END
 $do$;
+
+select count(*) n_t01 from dpvd24.t01filt_ibge_cnefe2022_point;  -- n_t01=106814877
 
 -- -- -- -- -- -- -- -- -- -- --
 --- INGEST MANCHA INUNDAÇÃO RS:
@@ -36,9 +38,9 @@ SELECT t0.gid, t1.i, t0.tipo_ada, ST_MakeValid(t1.g) geom -- sem ST_SimplifyVW(t
               ) -- /array
         )  -- /makes
         FROM ST_Dump( ST_Transform(geom,4326) ) AS poly
-        WHERE st_area(geom,true) >= 2 -- remove menor que 4m2
+        WHERE st_area(geom,true) >= 2 -- remove menor que 2m2
     ) AS geoms
-  FROM dpvd24.mancha_inund  --t02raw
+  FROM dpvd24.t02raw_mancha_inund
  ) t0,
  UNNEST(t0.geoms) WITH ORDINALITY t1(g,i)
-; -- 27986 rows
+; -- 28431 rows

@@ -29,7 +29,7 @@ DO $benchmark$
   FROM dpvd24.t01_ibge_cnefe2022_point c
   INNER JOIN dpvd24.t03dump_mancha_inund m
      ON c.geom && m.geom AND ST_Intersects(c.geom,m.geom)
- ; -- são esperados ~550 mil pontos.
+ ; -- 537902 pontos.
 
  -----------------------------------------------------------
  get diagnostics n_rows := row_count;

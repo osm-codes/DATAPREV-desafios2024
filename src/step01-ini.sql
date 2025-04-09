@@ -78,16 +78,14 @@ CREATE SCHEMA dpvd24_partitions;
 -- -- -- --
 -- CNEFE:
 
-CREATE TABLE dpvd24.t01_ibge_cnefe2022_point (
+CREATE TABLE dpvd24.t01filt_ibge_cnefe2022_point (
  COD_UNICO_ENDERECO  bigint NOT NULL, -- PRIMARY KEY,
  COD_MUNICIPIO int NOT NULL,
  COD_UF_part smallint NOT NULL, -- obrigatório no SELECT WHERE
  geom geometry(Point, 4326) NOT NULL
 ) PARTITION BY LIST (COD_UF_part)
 ;
-CREATE INDEX t01_ibge_cnefe2022_point_idx1
-  ON dpvd24.t01_ibge_cnefe2022_point
-  USING GIST (COD_UF_part,geom)
+CREATE INDEX t01filt_idx1 ON dpvd24.t01filt_ibge_cnefe2022_point USING GIST (COD_UF_part,geom)
 ;
 
 CREATE FUNCTION dpvd24.partitioner_of_t01(
@@ -98,7 +96,7 @@ CREATE FUNCTION dpvd24.partitioner_of_t01(
 $f$ language SQL IMMUTABLE PARALLEL SAFE;
 
 SELECT dynamic_execute( format(
-    'CREATE TABLE IF NOT EXISTS dpvd24_partitions.t01_p%s PARTITION OF dpvd24.t01_ibge_cnefe2022_point FOR VALUES IN (%1$s); ', p
+    'CREATE TABLE IF NOT EXISTS dpvd24_partitions.t01_p%s PARTITION OF dpvd24.t01filt_ibge_cnefe2022_point FOR VALUES IN (%1$s); ', p
   ) )
 FROM (
   select DISTINCT dpvd24.partitioner_of_t01(uf) p from unnest('{11,12,13,14,15,16,17,21,22,23,24,25,26,27,28,29,31,32,33,35,41,42,43,50,51,52,53}'::int[]) t0(uf)
@@ -146,12 +144,12 @@ CREATE FOREIGN TABLE dpvd24.f01_ibge_cnefe2022_get(
 ) SERVER import OPTIONS ( filename '/tmp/test.csv', format 'csv', header 'true', delimiter ';' )
 ;
 
-CREATE PROCEDURE dpvd24.ins_on_t01_ibge_cnefe2022_point(p_filename text)
+CREATE PROCEDURE dpvd24.ins_on_t01filt(p_filename text)
 LANGUAGE SQL AS $p$
  SELECT dynamic_execute(
    format('ALTER FOREIGN TABLE dpvd24.f01_ibge_cnefe2022_get OPTIONS (SET filename %L)', $1 )
  );
- INSERT INTO dpvd24.t01_ibge_cnefe2022_point
+ INSERT INTO dpvd24.t01filt_ibge_cnefe2022_point
   SELECT COD_UNICO_ENDERECO::bigint,
          MAX( COD_MUNICIPIO::int ), -- or FIRST as https://dba.stackexchange.com/q/63661/90651
          MAX( dpvd24.partitioner_of_t01(COD_MUNICIPIO::int) ),
@@ -164,7 +162,7 @@ $p$;
 
 -------
 
-CREATE VIEW dpvd24.table_disk_usage AS
+CREATE VIEW dpvd24.v01sys_rel_disk_usage AS
 SELECT
   schema_name, relname,
   pg_size_pretty(table_size) AS size,
@@ -179,10 +177,10 @@ FROM (
      ) t
 WHERE schema_name IN ('dpvd24','dpvd24_partitions')
 ORDER BY schema_name, table_size DESC;
--- SELECT * FROM dpvd24.table_disk_usage;
+-- SELECT * FROM dpvd24.v01sys_rel_disk_usage;
 
 
-CREATE TABLE dpvd24.performance_hist (
+CREATE TABLE dpvd24.t06sys_performance_hist (
  desafio_id int NOT NULL,
  framework_rotulo text NOT NULL,
  usr text NOT NULL,
