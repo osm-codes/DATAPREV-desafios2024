@@ -9,18 +9,24 @@ Ambos tipos de SIG podem ser implementados como "*framework* SQL", em ambiente P
 As diversas operações do Desafio2024 fazem uso de três grandes conjuntos de dados, válidos como **exemplo *Big Data***.
 
 ### CNEFE
+&nbsp; _Dados brutos_ na tabela `dpvd24.t01_ibge_cnefe2022_point` (7.6 Gib data + 5.4 Gib index). <!--3922081398 bytes zip-->
+<br/>&nbsp; _Fonte_: https://dl.digital-guard.org/daff5251f (\~3.65 GiB zipados). Os arquivios CSV expandidos totalizam \~17 GiB.
 
-O Censo de 2022, segundo [blog do próprio IBGE](https://agenciadenoticias.ibge.gov.br/agencia-noticias/2012-agencia-de-noticias/noticias/40393-noticia-cnefe), "tem 106,8 milhões de endereços". No presente projeto estamos interessados no que o IBGE denominou *endereços únicos*, que são endereços horizontais de porta de casa, **sem complemento**.
+O Censo de 2022, segundo [blog do próprio IBGE](https://agenciadenoticias.ibge.gov.br/agencia-noticias/2012-agencia-de-noticias/noticias/40393-noticia-cnefe), "tem 106,8 milhões de endereços". No presente projeto estamos interessados no que o IBGE denominou *endereços únicos*, que representam 96% desse total, mas geograficamente podem ser pontos duplicados. <!-- que são endereços horizontais de porta de casa, **sem complemento**.-->
 
-Os *datasets* "por UF" são arquivos CSV zipados, oferecidos em  https://www.ibge.gov.br/estatisticas/downloads-estatisticas.html  no caminho "Censo_Demografico_2022/Arquivos_CNEFE". Os pontos LatLong foram expressos em WGS84 (SRID 4326). A AddressForAll reuniu todos num só zip:<br>&nbsp; `IBGE_Enderecos.zip`	com 3922081398 bytes (\~3.65 GiB) e <br>&nbsp; SHA256=`daff5251f48d295d27621d0bfbd6c9b3a78a8827e31fd0bd7acb4bc7ad079d27`.<br>O *download* é pelo próprio *hash* ou seu prefixo:  https://dl.digital-guard.org/daff5251f  (cuidado só clicar se for mesmo baixar)(Passo 3).
+Os *datasets* "por UF" são arquivos CSV zipados, oferecidos em  https://www.ibge.gov.br/estatisticas/downloads-estatisticas.html  no caminho "Censo_Demografico_2022/Arquivos_CNEFE". Os pontos LatLong foram expressos em WGS84 (SRID 4326). A AddressForAll reuniu todos num só zip, no link indicado, com *checksum* SHA256=`daff5251f48d295d27621d0bfbd6c9b3a78a8827e31fd0bd7acb4bc7ad079d27`.
 
-Esta [página IBGE dá acesso ao Excel de descrição, "Dicionário"](https://www.ibge.gov.br/estatisticas/sociais/populacao/38734-cadastro-nacional-de-enderecos-para-fins-estatisticos.html?edicao=40122&t=resultados), e conforma a coluna `COD_UNICO_ENDERECO` como chave primária. Dá a entender que são endereços de imóveis, ou seja,  duplicando pontos de "endereço horizontal" no caso de edifícios e demais tipos de imóveis distinguíveis apenas pelo complemento do endereço.
+Esta [página IBGE dá acesso ao Excel de descrição, "Dicionário"](https://www.ibge.gov.br/estatisticas/sociais/populacao/38734-cadastro-nacional-de-enderecos-para-fins-estatisticos.html?edicao=40122&t=resultados), e descreve a coluna `COD_UNICO_ENDERECO` como chave primária. <!-- Dá a entender que são endereços de imóveis, ou seja,  duplicando pontos de "endereço horizontal" no caso de edifícios demais tipos de imóvel distinguíveis apenas pelo complemento do endereço.-->
 
-Na [seção abaixo](#instalação) de instalação indicamos, depois do "passo 3", a melhor forma de trazer os dados para o PostgreSQL, através de ETL ao invés de cópia direta (dos \~17 GiB de CSV expandidos), armazenando apenas o essencial, ponto, seu ID e o ID do seu município. O custo final é de \~2500 bytes/linha (\~1800 dados e \~690 indexação PK), de modo que, multiplicando por \~107 milhões, temos `107000000.0*2500.0/1024^3 = 250 GiB`. A tabela `dpvd24.f01_ibge_cnefe2022_get` , portanto, foi particionada em grandes regiões.
+Na [seção abaixo](#instalação) de instalação indicamos, depois do "passo 3", a melhor forma de trazer os dados para o PostgreSQL, através de ETL ao invés de cópia direta dos CSVs, armazenando apenas o essencial: seu ponto, seu ID e o ID do seu município. O custo final é da ordem de `10 GiB`, de modo que a tabela foi particionada em grandes regiões.
 
 Para conferir o número de linhas do zip expandido é o mesmo que nos arquivos originais, usar `wc -l *.csv | awk '{a=a+ $1-1;} END {print a;}'` que resulta em 222205776 (222 milhões). Os CSVs e o zip podem ser todos apagados depois da instalação.
 
 ### Mancha
+&nbsp; Dados brutos na tabela `dpvd24.t02_mancha_inund` (61 MB).
+&nbsp; Fonte: ? (?).
+
+As [enchentes no Rio Grande do Sul em 2024](https://pt.wikipedia.org/wiki/Enchentes_no_Rio_Grande_do_Sul_em_2024) ficaram caracterizadas por seu "mapa de mancha de inundação", contendo as áreas geográficas atingidas.
 
 Os dados foram disponibilizados na infraestrutura do Mapa Único do Plano Rio Grande (**MUP RS**), em https://mup.rs.gov.br/ (é uma aplicação MS-PowerBI com ícone "i" para navegar nos dados). Os dados MKL foram convertidos para *shapefile*. Exemplo de processo em ambiente Linux, dentro do "passo 6" descrito na [seção abaixo](#instalação) de instalação:
 
@@ -42,10 +48,14 @@ FROM dpvd24.t02_mancha_inund;
 São dois grandes multi-polígonos compostos, cada um por milhares de polígonos. Para que o PostGIS processe com mais eficiência a verificação dos pontos contidos no multipolígono, é recomendado que se exploda a geometria nos seus diversos polígonos, elimimando se necessário os insignificantes, com menos de 2 m². No _script_ [`src/step01-ini.sql`](src/step01-ini.sql) foram implementadas as funções de tratamento e a tabela que recebe o material tratado.
 
 ### SICAR
+&nbsp; Dados brutos na tabela `dpvd24.imoveis_rs` (370 Mib).
+&nbsp; Fonte: https://consultapublica.car.gov.br (? bytes).
 
 O Sistema de Cadastro Ambiental Rural (SICAR) contém polígonos representando lotes de propriedade da terra. São  mantidos pelo https://www.car.gov.br  e com *downloads* disponíveis em https://consultapublica.car.gov.br
 
 Por ser um conjunto de dados mais pesado, restringimos o universo ao Estado do Rio Grande do Sul, RS.
+
+Foi definido em [SRID&nbsp;4674](https://epsg.io/4674), que pode ser considerado equivalente ao WGS84.
 
 --------------
 
@@ -54,22 +64,38 @@ São "desafios computacionais" de SIG, correspondendo a operações típicas de 
 
 O [*benchmark* de *software*](https://en.wikipedia.org/wiki/Benchmark_(computing)) requer ambiente controlado, sem outras aplicações rodando simultaneamente. Convenções:
 * computador com *hardware* popular (ex. Notebook com disco SSD e CPU Intel Core i7),
-* sistema operacional Linux (Ubuntu LTS 20),
+* sistema operacional Linux (Ubunto LTS 20),
 * [PostgreSQL v16](https://en.wikipedia.org/wiki/PostgreSQL#Release_history), [`psql` v17](https://github.com/postgres/postgres/tree/master/src/bin/psql), [PostGIS v3.5](https://en.wikipedia.org/wiki/PostGIS#History).
 
 Os desafios são executados por uma testemunha (usuário Github) em seu ambiente, e resultados registrados no [arquivo `benckmark_info.csv`](data/benckmark_info.csv) pela testemunha. A instalação e execussão dos *benchmarks* é realizada em `psql`. A mesma temporização pode ser obtida de diversas formas: pelo comando psql `\timing` ;  incluindo cláusula [`EXPLAIN ANALYSE`](https://www.postgresql.org/docs/current/sql-explain.html) (*Execution Time*); ou usando `clock_timestamp`. Optamos pela última para poder inserir valores na tabela de controle  `dpvd24.performance_hist`, que alimenta no formato correto o `benckmark_info.csv`.
 
 ### Desafio 1 - Pontos dentro da Mancha
-A operação de verificação de quais pontos do CNEFE estão dentro da Mancha de Inundação é bastante simples e corriqueira em SIG, mas devido ao volume de dados, num computador pessoal, mesmo com dados bem preparados, pode levar algumas horas (ex. Notebook com processador Intel i7).
+<!-- Endereços na Mancha de Inundação de RS -->
+Encontrar os pontos de endereço CNEFE que estão dentro da Mancha de Inundação do RS. Scripts [`step04-desafio01p1-GISpoints.sql`](src/step04-desafio01p1-GISpoints.sql) e do fornecedor DNGS, `desafio01p2`.
 
-### Desafio 2 - ...
-A revisar com comunidade.
+A operação de verificação de quais pontos estão dentro da Mancha é simples em SIG convencional, mas devido ao volume de dados, mesmo com dados bem preparados, pode levar algumas horas num computador pessoal. A hipótese é que o tempo de verificação em _framework_ DNGS seja dezenas ou centenas de vezes menor.  
+
+### Desafio 2 - Lotes com maior parte sob a Mancha
+Lotes do SICAR com 60% ou mais de sua área sob a Mancha de Inundação. Scripts [`step04-desafio02p1-GISpoints.sql`](src/step04-desafio01p1-GISpoints.sql) e do fornecedor DNGS, `desafio02p2`.
+
+### Desafio 3 - Lotes com sobreposição relevante entre si
+A sobreposição de lotes pode ser insignificante se for apenas um ponto ou pequena porção sobreposta. Isso é esperado devido à imprecisão das medições e ausência de padronização metodológica na coleta dos dados. Podemos imaginar, por outro lado, a situação onde a sobreposição se torna relevante, para por exemplo eliminar da base de dados.
+
+Para fins de _benchmark_ foram considerados: lotes SICAR com 40% ou mais de sua área sobreposta a outro lote.  Scripts [`step04-desafio03p1-GISpoints.sql`](src/step04-desafio01p1-GISpoints.sql) e do fornecedor DNGS, `desafio03p2`.
+
+### Desafio 4 - Determinação do município do ponto
+<!-- Associar pontos aos respectivos municípios, conhecendo apenas as suas geometrias -->
+Desafio análogo ao 1, porém usando polígonos que formam uma cobertura completa (sem lacunas ou sobreposições) sobre o território nacional. No caso do SIG convencional a performance esperada é a mesma. Na da representação em grade surge a necessidade de uma operação a mais no preparo. conhecida como [*snap rounding*](https://en.wikipedia.org/wiki/Snap_rounding) poligonal.
+
+O _benchmark_ aqui é mais delicado: buscamos avaliar convergência em função da resolução. A técnica de *snap rounding*, para que seja a mesma para qualquer que seja o *_framework_ de grade, será usando o SIG convencional: depois de obtidas coberturas municipais com certa resolução, as lacunas dentre municípios são preenchidas pelo município com maior área sob a lacuna.
+
+Outra diferença para o Desafio 1 é que todos os pontos serão selecionados, e podem ser um a uma validados, e essa validação também faz parte do _benchmark_.
 
 --------------
 
 ## Instalação
 
-A tabela `dpvd24.f01_ibge_cnefe2022_get` definida em [`src/step01-ini.sql`](src/step01-ini.sql) faz a leitura do CSV, mas precisa do *path* local dos arquivos CSV do `IBGE_Enderecos.zip` descritos acima. O usuário também precisa de privilégio para a execussão de stored procedures. Recomenda-se também criar uma base exclusíva para o presente projeto, por exemplo base `dbtest`.
+A tabela `dpvd24.f01_ibge_cnefe2022_get` definida em [`src/step01-ini.sql`](src/step01-ini.sql) faz a leitura do CSV, mas precisa do *path* local dos arquivos CSV do `IBGE_Enderecos.zip` descritos acima>
 
 Depois disso basta seguir o passo-a-passo, supondo ambiente Linux:
 

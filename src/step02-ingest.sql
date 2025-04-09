@@ -24,7 +24,7 @@ $do$;
 -- shp2pgsql -I -s 4674 /tmp/mancha_inund/ada_03092024.shp dpvd24.mancha_inund | psql postgres://postgres@localhost/dbtest1
 
 CREATE TABLE dpvd24.t03dump_mancha_inund AS
-SELECT t0.gid, t1.i, t0.tipo_ada, ST_MakeValid( ST_SimplifyVW(t1.g,2) ) as geom
+SELECT t0.gid, t1.i, t0.tipo_ada, ST_MakeValid(t1.g) geom -- sem ST_SimplifyVW(t1.g,2)
  FROM (
   SELECT gid, tipo_ada::text,
     ARRAY(
@@ -32,12 +32,13 @@ SELECT t0.gid, t1.i, t0.tipo_ada, ST_MakeValid( ST_SimplifyVW(t1.g,2) ) as geom
               ST_ExteriorRing(geom),
               ARRAY( SELECT ST_ExteriorRing( rings.geom )
                       FROM ST_DumpRings(geom) AS rings
-                      WHERE rings.path[1] > 0 AND ST_Area(rings.geom,true) >= 4
+                      WHERE rings.path[1] > 0 AND ST_Area(rings.geom,true) >= 2
               ) -- /array
         )  -- /makes
-        FROM ST_Dump(geom) AS poly where st_area(geom,true) >= 4 -- remove menor que 4m2
+        FROM ST_Dump( ST_Transform(geom,4326) ) AS poly
+        WHERE st_area(geom,true) >= 2 -- remove menor que 4m2
     ) AS geoms
-  FROM dpvd24.mancha_inund
+  FROM dpvd24.mancha_inund  --t02raw
  ) t0,
  UNNEST(t0.geoms) WITH ORDINALITY t1(g,i)
 ; -- 27986 rows
