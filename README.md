@@ -28,7 +28,7 @@ Para conferir o número de linhas do zip expandido é o mesmo que nos arquivos o
 
 As [enchentes no Rio Grande do Sul em 2024](https://pt.wikipedia.org/wiki/Enchentes_no_Rio_Grande_do_Sul_em_2024) ficaram caracterizadas por seu "mapa de mancha de inundação", contendo as áreas geográficas atingidas.
 
-Os dados foram disponibilizados na infraestrutura do Mapa Único do Plano Rio Grande (**MUP RS**), em https://mup.rs.gov.br/ (é uma aplicação MS-PowerBI com ícone "i" para navegar nos dados). Os dados MKL foram convertidos para *shapefile*. Exemplo de processo em ambiente Linux, dentro do "passo 6" descrito na [seção abaixo](#instalação) de instalação:
+Os dados foram disponibilizados na infraestrutura do Mapa Único do Plano Rio Grande (**MUP RS**), em https://mup.rs.gov.br/ (é uma aplicação MS-PowerBI com ícone "i" para navegar nos dados). Os dados MKL foram convertidos para *shapefile*. Exemplo de processo em ambiente Linux, dentro do "passo 4" descrito na [seção abaixo](#instalação) de instalação:
 
 ```sh
 ogr2ogr -f "ESRI Shapefile" /tmp/mancha_inund/ADA_SPGG_03092024.kml
