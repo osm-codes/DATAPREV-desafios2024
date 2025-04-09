@@ -5,6 +5,9 @@
 
  DO $benchmark$
  DECLARE
+  p_desafio_id        bigint;
+  p_user              text;
+  p_framework_rotulo  text;
   n_rows bigint;
   tstart TIMESTAMP;
   tend TIMESTAMP;
@@ -18,6 +21,8 @@
  p_desafio_id := 1;
  p_framework_rotulo := 'SIG convencional';
 -----------------------------------------------------------
+  -- Início da medição de tempo
+  tstart := clock_timestamp();
 
  CREATE TABLE dpvd24.t04res_point_bysig AS
   SELECT c.cod_unico_endereco, m.gid, m.i
@@ -36,7 +41,7 @@
    VALUES (p_desafio_id, p_framework_rotulo, p_user, n_rows, total_s, rows_per_sec, now())
  ;
  RAISE NOTICE
-   '======= % rows of %/% % in % seconds;  rows_per_sec=%  =======',
+   '======= % rows of %/% in % seconds;  rows_per_sec=%  =======',
    n_rows, p_desafio_id, p_framework_rotulo, total_s, rows_per_sec
  ;
  END;
