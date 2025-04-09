@@ -185,10 +185,10 @@ ORDER BY schema_name, table_size DESC;
 CREATE TABLE dpvd24.performance_hist (
  desafio_id int NOT NULL,
  framework_rotulo text NOT NULL,
- "user" text NOT NULL,
+ usr text NOT NULL,
  n_rows int,
  total_s int,
  rows_per_sec int,
  dt_run date DEFAULT now(),
- UNIQUE(desafio_id,framework_rotulo,"user",dt_run)
+ UNIQUE(desafio_id,framework_rotulo,usr,dt_run)
 );
