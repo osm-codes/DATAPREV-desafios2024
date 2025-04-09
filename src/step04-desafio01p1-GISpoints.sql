@@ -5,9 +5,9 @@
 
  DO $benchmark$
  DECLARE
-  p_desafio_id        bigint;
-  p_user              text;
-  p_framework_rotulo  text;
+  p_desafio_id bigint;
+  p_user text;
+  p_framework_rotulo text;
   n_rows bigint;
   tstart TIMESTAMP;
   tend TIMESTAMP;
