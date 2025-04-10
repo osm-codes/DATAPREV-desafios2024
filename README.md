@@ -6,10 +6,20 @@ Esses desafios servem de *benchmark* para comparação de SIG **convencional** (
 Ambos tipos de SIG podem ser implementados como "*framework* SQL", em ambiente PostgreSQL/[PostGIS](https://en.wikipedia.org/wiki/PostGIS), adotado pelo presente projeto.
 
 ## Arquivos, tabelas e _views_
-Os dados que alimentam o projeto chegam na forma de arquivos comprimidos. Para garantir sua integridade adotou-se *checksum* [SHA256](https://en.wikipedia.org/wiki/SHA-2).
+Os dados relativos a resultados finais e parciais de cada _framework_ recebem nomes com os seguintes rótulos:
+
+Framework previsto    | Descrição 
+----------------------|---------------
+`frcnv` Convencional  | Instrumentos PostGIS de um SIG convencional (vetorial com operações ISO&nbsp;19125-2).
+`frafa` DNGS AFA      | Implementação do padrão DNGS oferecida por [AFA.codes](https://AFA.codes).
+`frh3` DGGS H3       | Implementação do padrão DGGS oferecida por [Uber H3](https://h3geo.org/). <!-- https://github.com/DahnJ/H3-Pandas -->
+`frrpx` DGGS rHEALpix  | Implementação do padrão DGGS oferecida por [rHEALPix](https://github.com/manaakiwhenua/rhealpixdggs-py).<!-- https://github.com/manaakiwhenua/rHP-Pandas e https://scispace.com/pdf/exploring-the-usability-of-the-rhealpix-discrete-global-grid-ghgqiys9hl.pdf -->
+`frs2` DGGS S2geom       | Implementação do padrão DGGS oferecida por  [Google S2 Geometry](http://s2geometry.io/). <!-- [S2 Pandas](https://github.com/geopandas/community/issues/10) -->
+
+Os dados de entrada dos desafios chegam na forma de arquivos comprimidos. Para garantir sua integridade adotou-se *checksum* [SHA256](https://en.wikipedia.org/wiki/SHA-2).
 
 Como projeto orientado a SQL, foi adotado um SCHEMA como *namespace* (`dpv24`), e podendo ser "dropado em cascata" e reconstruído a partir dos scripts deste *git*.
-Para as tabels adotou-se a seguinte convenção de nomes: prefixo par para tabelas brutas "as is", `t00raw_`, `t02raw_`, `t04raw_` etc. e prefixo impar para demais dados, `t01x_`, `t03y_`, `t05z_` etc. VIEWs com prefixo `v` seguindo de numeração impar quando dependente de uma só tabela (que aparece como sufixo), e numeração par nos demais casos. 
+Para as tabels adotou-se a seguinte convenção de nomes: prefixo par para tabelas brutas "as is", `t00raw_`, `t02raw_`, `t04raw_` etc. e prefixo impar para demais dados, `t01x_`, `t03y_`, `t05z_` etc. VIEWs com prefixo `v` seguindo de numeração impar quando dependente de uma só tabela (que aparece como sufixo), e numeração par nos demais casos. Tabelas de resultado de desafios prefixo `tdes` seguido do número do desafio e número do *framework*: `tdes01res_frX_`, `tdes01res_frY_`, etc. 
 
 ## Dados de entrada
 As diversas operações do Desafio2024 fazem uso de três grandes conjuntos de dados, todos com características de *Big Data*.
@@ -80,20 +90,31 @@ O [*benchmark* de *software*](https://en.wikipedia.org/wiki/Benchmark_(computing
 Os desafios são executados por uma testemunha (usuário Github) em seu ambiente, e resultados registrados no [arquivo `benckmark_info.csv`](data/benckmark_info.csv) pela testemunha. A instalação e execussão dos *benchmarks* é realizada em `psql`. A mesma temporização pode ser obtida de diversas formas: pelo comando psql `\timing` ;  incluindo cláusula [`EXPLAIN ANALYSE`](https://www.postgresql.org/docs/current/sql-explain.html) (*Execution Time*); ou usando `clock_timestamp`. Optamos pela última para poder inserir valores na tabela de controle  `dpvd24.performance_hist`, que alimenta no formato correto o `benckmark_info.csv`.
 
 ### Desafio 1 - Pontos dentro da Mancha
-<!-- Endereços na Mancha de Inundação de RS -->
+&nbsp; _Resultado do SIG convencional_  na tabela `dpvd24.tdes01res_frcnv_points` (537902 pontos).
+<br/>&nbsp; _Resultado comparativos_ nas tabelas `dpvd24.ttdes01res_frX`
+
 Encontrar os pontos de endereço CNEFE que estão dentro da Mancha de Inundação do RS. Scripts [`step04-desafio01p1-GISpoints.sql`](src/step04-desafio01p1-GISpoints.sql) e do fornecedor DNGS, `desafio01p2`.
 
 A operação de verificação de quais pontos estão dentro da Mancha é simples em SIG convencional, mas devido ao volume de dados, mesmo com dados bem preparados, pode levar algumas horas num computador pessoal. A hipótese é que o tempo de verificação em _framework_ DNGS seja dezenas ou centenas de vezes menor.  
 
 ### Desafio 2 - Lotes com maior parte sob a Mancha
-Lotes do SICAR com 60% ou mais de sua área sob a Mancha de Inundação. Scripts [`step04-desafio02p1-GISpoints.sql`](src/step04-desafio01p1-GISpoints.sql) e do fornecedor DNGS, `desafio02p2`.
+&nbsp; _Resultado do SIG convencional_ na tabela `dpvd24.tdes02res_frcnv_lotes_mancha`.
+<br/>&nbsp; _Resultado comparativos_ nas tabelas `dpvd24.ttdes02res_frX_lotes_mancha`.
+
+Lotes do SICAR com 51% ou mais de sua área sob a Mancha de Inundação. Scripts [`step04-desafio02p1-GISpoints.sql`](src/step04-desafio01p1-GISpoints.sql) e do fornecedor DNGS, `desafio02p2`.
 
 ### Desafio 3 - Lotes com sobreposição relevante entre si
+&nbsp; _Resultado do SIG convencional_ na tabela `dpvd24.tdes03res_frcnv_lotes_sobrep`.
+<br/>&nbsp; _Resultado comparativos_ nas tabelas `dpvd24.ttdes03res_frX_lotes_sobrep`.
+
 A sobreposição de lotes pode ser insignificante se for apenas um ponto ou pequena porção sobreposta. Isso é esperado devido à imprecisão das medições e ausência de padronização metodológica na coleta dos dados. Podemos imaginar, por outro lado, a situação onde a sobreposição se torna relevante, para por exemplo eliminar da base de dados.
 
-Para fins de _benchmark_ foram considerados: lotes SICAR com 40% ou mais de sua área sobreposta a outro lote.  Scripts [`step04-desafio03p1-GISpoints.sql`](src/step04-desafio01p1-GISpoints.sql) e do fornecedor DNGS, `desafio03p2`.
+Computacionalmente, para _N_ lotes, a verificação de "todos contra todos" requer *N²*/2-*N* comparações. Para fins de _benchmark_ foram considerados: lotes SICAR com 25% ou mais de sua área sobreposta a outro lote.  Scripts [`step04-desafio03p1-GISpoints.sql`](src/step04-desafio01p1-GISpoints.sql) e do fornecedor DNGS, `desafio03p2`.  
 
 ### Desafio 4 - Determinação do município do ponto
+&nbsp; _Resultado do SIG convencional_ na tabela `dpvd24.tdes04res_frcnv_pt_municip`.
+<br/>&nbsp; _Resultado comparativos_ nas tabelas `dpvd24.ttdes04res_frX_pt_municip`.
+
 <!-- Associar pontos aos respectivos municípios, conhecendo apenas as suas geometrias -->
 Desafio análogo ao 1, porém usando polígonos que formam uma cobertura completa (sem lacunas ou sobreposições) sobre o território nacional. No caso do SIG convencional a performance esperada é a mesma. Na da representação em grade surge a necessidade de uma operação a mais no preparo. conhecida como [*snap rounding*](https://en.wikipedia.org/wiki/Snap_rounding) poligonal.
 
