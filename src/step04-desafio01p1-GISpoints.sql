@@ -24,7 +24,7 @@ DO $benchmark$
  tstart := clock_timestamp();
 -----------------------------------------------------------
 
- CREATE TABLE dpvd24.t04res_point_bysig AS
+ CREATE TABLE dpvd24.tdes01res_frcnv_points AS
   SELECT c.cod_unico_endereco, m.gid, m.i
   FROM dpvd24.t01_ibge_cnefe2022_point c
   INNER JOIN dpvd24.t03dump_mancha_inund m
