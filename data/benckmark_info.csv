@@ -1,2 +1,4 @@
-CPUs,CPU_model_name,system,desafio,framework,user,result_table,rows_per_sec,rows,date
-8,11th Gen Intel(R) Core(TM) i7-1165G7 @ 2.80GHz,Ubuntu 20 LTS,01,SIG convencional,ppkrauss,tdes01res_frcnv_points,60,537902,2025-04-15
+desafio,framework,result_table,rows_per_sec,secs,rows,date,CPUs,CPU_model_name,system,user
+1,SIG convencional,tdes01res_frcnv_points,60,8965,537902,2025-04-15,8,Intel Core i7-6700 CPU @ 3.40GHz,Ubuntu 24 LTS,ppkrauss
+1,SIG convencional,tdes01res_frcnv_points,162,3321,537902,2025-04-20,8,11th Gen Intel Core i7-1165G7 @ 2.80GHz,Ubuntu 20 LTS,ppkrauss
+1,DNGS AFA,tdes01res_frafa_points,11786,46,537939,2025-04-20,8,11th Gen Intel Core i7-1165G7 @ 2.80GHz,Ubuntu 20 LTS,ppkrauss
