@@ -39,7 +39,7 @@ Na [seção abaixo](#instalação) de instalação indicamos, depois do "passo 3
 
 Para conferir o número de linhas do zip expandido é o mesmo que nos arquivos originais, usar `wc -l *.csv | awk '{a=a+ $1-1;} END {print a;}'` que resulta em 222205776 (222 milhões). Os CSVs e o zip podem ser todos apagados depois da instalação.
 
-### Mancha
+### Mancha original
 &nbsp; _Dados brutos_ na tabela `dpvd24.t02raw_mancha_inund` (61 MB).
 <br/> &nbsp; _Fonte_:  https://mup.rs.gov.br/   (`ADA_SPGG_03092024.zip` com 48.5 MB). 
 <br/> &nbsp; _SHA256_: [`0e4ce549a2572bd736ab7e441fb3054107c1793b58cea0603d163d2d7bcfa691`](https://dl.digital-guard.org/0e4ce549a257)
@@ -64,6 +64,44 @@ FROM dpvd24.t02raw_mancha_inund;
    2 | SPGG          | 15210 | ST_MultiPolygon |   21814
 ```
 São dois grandes multi-polígonos compostos, cada um por milhares de polígonos. Para que o PostGIS processe com mais eficiência a verificação dos pontos contidos no multipolígono, é recomendado que se exploda a geometria nos seus diversos polígonos, elimimando se necessário os insignificantes, com menos de 2 m². No _script_ [`src/step01-ini.sql`](src/step01-ini.sql) foram implementadas as funções de tratamento e a tabela que recebe o material tratado.
+
+### Mancha valida
+
+Para efeitos *benchmark* não faz sentido usar fontes defeituosas. As geometrias do `mup.rs.gov.br` são grandes e complexas, e não caberia ao presente projeto trata-las. Usaremos o seguinte recurso:
+
+```sql
+ALTER TABLE dpvd24.t03dump_mancha_inund RENAME TO lixo_t03dump_mancha_inund
+; -- originalmente todos são POLYGON, mas nem todos são válidos.
+
+CREATE TABLE dpvd24.t03dump_mancha_inund_valid AS
+  SELECT gid, i, tipo_ada, g2 AS geom
+  FROM (SELECT *, ST_MakeValid(geom) as g2 FROM dpvd24.lixo_t03dump_mancha_inund) t
+  WHERE st_area(g2,true)>2 AND NOT(
+    grid_br.bbox_maxside(g2,true) > st_area(g2,true) 
+    AND  grid_br.bbox_maxside(g2,true) > (sqrt(st_area(g2,true))*1.4)
+   ) 
+; -- 27757
+/* SELECT GeometryType(geom), 
+    (1*bbx[1]) >area and not(per>3*(bbx[1]+bbx[2])) AS is_along_linear,
+    COUNT(*) n, SUM(case when gid=1 then 1 else 0 end) n_gid1,
+    round(AVG(area)) area, round(AVG(sqrt(area::float)*bbx[1]::float/area::float),1) bbx_area_factor,
+    round(AVG(bbx[1])) bbx, 
+    round(MIN(area)) min_area, round(MIN(bbx[1])) min_bbx
+FROM (SELECT *, grid_br.bbox_maxside_array(geom,true) bbx, st_area(geom,true)::bigint area,st_perimeter(geom,true)::bigint per FROM all_valid) a
+WHERE area>2
+GROUP BY 1,2 ORDER BY 1,2
+; */
+```
+geometrytype    | is_along_linear |   n   | n_gid1 |   area   | bbx_area_factor | bbx  | min_area | min_bbx 
+----------------|-----------------|-------|--------|----------|-----------------|------|----------|----
+GEOMETRYCOLLECTION | N               |   125 |      6 | 61551850 |             2.5 | 7084 |      136 |      35
+ MULTIPOLYGON       | N               |     8 |      5 |   353365 |             3.9 |  884 |     1002 |      96
+ MULTIPOLYGON       | YES               |     1 |      0 |       30 |           745.3 | 4082 |       30 |    4082
+ POLYGON            | N               | 27600 |   6031 |   311215 |             2.3 |  564 |        3 |       2
+ POLYGON            | YES               |   328 |    298 |       18 |            11.9 |   44 |        3 |       4
+
+Podemos eliminar "poeiras" com menos de 2 m², e poligonos que tendem a linhas (1D), com área inferior à sua dimensão mais longa. 
+As geometrias precisam ser válidas pois precisam ser particionadas pela grade, e agregadas (ST_Union) para reduzir a quantidade de rasterizações.
 
 ### SICAR
 &nbsp; _Dados brutos_ na tabela `dpvd24.t04raw_imoveis_rs` (370 Mib).
